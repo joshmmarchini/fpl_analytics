@@ -3,8 +3,23 @@
 # Date: 9/30/2024 # nolint
 # Goal: Loop through matches table create df of all matches
 # ############################################################################
+library(here)
 
-root <- "C:/dev/fpl_analytics/data/external/FPL-Core-Insights/data/2025-2026/By Gameweek"
+root<- here(
+"data",
+"external",
+"FPL-Core-Insights",
+"data",
+"2025-2026",
+"By Gameweek"
+)
+
+
+# Run here::here() --> should show your project root
+# Run print(root) to see full project path
+dir.exists(root) # should be true
+
+
 
 read_gw_base <- function(n) {
   csv_path <- file.path(root, paste0("GW", n), "matches.csv")

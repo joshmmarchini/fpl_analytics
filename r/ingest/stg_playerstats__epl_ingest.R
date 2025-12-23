@@ -8,7 +8,21 @@
 # Good
 ###############################################################################
 
-root <- "C:/dev/fpl_analytics/data/external/FPL-Core-Insights/data/2025-2026/By Gameweek"
+library(here)
+
+root<- here(
+"data",
+"external",
+"FPL-Core-Insights",
+"data",
+"2025-2026",
+"By Gameweek"
+)
+
+
+# Run here::here() --> should show your project root
+# Run print(root) to see full project path
+dir.exists(root) # should be true
 
 read_gw_base <- function(n) {
   csv_path <- file.path(root, paste0("GW", n), "playerstats.csv")
