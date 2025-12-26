@@ -7,6 +7,7 @@ with gw_epl as (
         gw.id,
         gw.gameweek,
         p.web_name,
+        p.position,
         t.short_name as team,
         gw.total_points_gw,
         gw.bonus_points_gw,
