@@ -58,7 +58,7 @@ gw_player_agg <- gw_player %>%
 
 # max_gw <- max(gw_player$gameweek, na.rm = TRUE)
 max_gw <- 17
-pos <- "Defender" # Defender, Midfielder, Goalkeeper, Forward
+pos <- "Midfielder" # Defender, Midfielder, Goalkeeper, Forward
 
 gw_player_rolling_latest <- gw_player %>%
   arrange(id, gameweek) %>%
@@ -133,22 +133,30 @@ gw_player_rolling_latest <- gw_player %>%
 
 ggplot(
   gw_player_rolling_latest,
-  aes(x = cbit_per_90_4gw, y = xgi_per_90_4gw, label = web_name)
+  aes(x = cbitr_per_90_4gw, y = xgi_per_90_4gw, label = web_name)
 ) +
   geom_point(alpha = 0.7, size = 2) +
   geom_text_repel(size = 3, max.overlaps = 15) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(
-    title = "CBIT vs xGI (Last 4 GWs)",
-    x = "CBIT per 90 (Last 4 GWs)",
+    title = "CBITR vs xGI (Last 4 GWs)",
+    x = "CBITR per 90 (Last 4 GWs)",
     y = "xGI per 90 (Last 4 GWs)"
   ) +
   theme_minimal()
 
 
-# Idea: Player points scored by gw
+# Add Guehi (easy schedule, high xgi and cbit)
 
-
+# Maatsen, Cash
+# Dalot
+# Gudmundsson
+# Guehi
+# Strujuk
+# N Williams
+# Gvardiol
+# Hall
+# Alderete
 
 
 
