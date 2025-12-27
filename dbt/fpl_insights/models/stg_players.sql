@@ -2,4 +2,4 @@
 {{ config(materialized='table') }}
 
 SELECT *
-FROM read_csv_auto('C:/Users/joshm/OneDrive/Desktop/Projects/FPL-Elo-Insights/data/2025-2026/players.csv')
+FROM read_csv_auto('C:/dev/fpl_analytics/data/external/FPL-Core-Insights/data/2025-2026/players.csv')

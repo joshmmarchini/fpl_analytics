@@ -51,13 +51,14 @@ gw_player_agg <- gw_player %>%
     xgi_per_90 = (xgi / minutes_played) * 90,
     cbit_per_90 = (cbit / minutes_played) * 90,
     .groups = "drop"
-  ) %>%
-  filter(avg_minutes_per_game >= 70)
+  )
+  filter(avg_minutes_per_game >= 40)
 
 
 
-max_gw <- max(gw_player$gameweek, na.rm = TRUE)
-pos <- "Defender"
+# max_gw <- max(gw_player$gameweek, na.rm = TRUE)
+max_gw <- 17
+pos <- "Defender" # Defender, Midfielder, Goalkeeper, Forward
 
 gw_player_rolling_latest <- gw_player %>%
   arrange(id, gameweek) %>%
@@ -128,7 +129,7 @@ gw_player_rolling_latest <- gw_player %>%
 
 
 # Which defenders defend and have good xgi and cbit?
-  # Hall, Bassey, Colins
+  # 
 
 ggplot(
   gw_player_rolling_latest,
@@ -145,9 +146,7 @@ ggplot(
   theme_minimal()
 
 
-
-
-
+# Idea: Player points scored by gw
 
 
 
