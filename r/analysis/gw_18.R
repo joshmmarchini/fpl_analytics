@@ -52,13 +52,11 @@ gw_player_agg <- gw_player %>%
     cbit_per_90 = (cbit / minutes_played) * 90,
     .groups = "drop"
   )
-  filter(avg_minutes_per_game >= 40)
 
 
 
-# max_gw <- max(gw_player$gameweek, na.rm = TRUE)
-max_gw <- 17
-pos <- "Midfielder" # Defender, Midfielder, Goalkeeper, Forward
+max_gw <- max(gw_player$gameweek, na.rm = TRUE)
+#pos <- "Midfielder" # Defender, Midfielder, Goalkeeper, Forward
 
 gw_player_rolling_latest <- gw_player %>%
   arrange(id, gameweek) %>%
@@ -111,28 +109,72 @@ gw_player_rolling_latest <- gw_player %>%
       .complete = TRUE
     ),
 
+    bps_4gw = slide_dbl(
+      bonus_points_gw,
+      sum,
+      .before = 3,
+      .complete = TRUE
+    ),
+
+    exp_goal_inv = slide_dbl(
+      expected_goal_involvements_gw,
+      sum,
+      .before = 3,
+      .complete = TRUE
+    ),
+
+    shots = slide_dbl(
+      total_shots,
+      sum,
+      .before = 3,
+      .complete = TRUE
+    ),
+
 
     avg_minutes_per_game_4gw = minutes_4gw / matches_4gw,
     xgi_per_90_4gw = (xgi_4gw / minutes_4gw) * 90,
     xg_per_90_4gw = (xg_4gw / minutes_4gw) * 90,
     xa_per_90_4gw = (xa_4gw / minutes_4gw) * 90,
     cbit_per_90_4gw = (cbit_4gw / minutes_4gw) * 90,
-    cbitr_per_90_4gw = (cbitr_4gw / minutes_4gw) * 90
+    cbitr_per_90_4gw = (cbitr_4gw / minutes_4gw) * 90,
+    exp_goal_inv_per_90_4gw = (exp_goal_inv / minutes_4gw) * 90,
+    shots_per_90_4gw = (shots / minutes_4gw) * 90
   ) %>%
   ungroup() %>%
   filter(
     matches_4gw == 4,
-    avg_minutes_per_game_4gw >= 70
+    avg_minutes_per_game_4gw >= 60
   ) %>%
-  filter(gameweek == max_gw) %>%
-  filter(position == pos)
+  filter(gameweek == max_gw) #%>%
+  #filter(position == pos)
 
 
-# Which defenders defend and have good xgi and cbit?
-  # 
+###############################################
+## Plot CBIT vs xGI for Defenders
+###############################################
 
+windows()
 ggplot(
-  gw_player_rolling_latest,
+  gw_player_rolling_latest %>% filter(position == Defender),
+  aes(x = cbit_per_90_4gw, y = xgi_per_90_4gw, label = web_name)
+) +
+  geom_point(alpha = 0.7, size = 2) +
+  geom_text_repel(size = 3, max.overlaps = 15) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "CBIT vs xGI (Last 4 GWs)",
+    x = "CBIT per 90 (Last 4 GWs)",
+    y = "xGI per 90 (Last 4 GWs)"
+  ) +
+  theme_minimal()
+
+###############################################
+## Plot CBITR vs xGI for Midfielders (past 4 gw)
+###############################################
+
+windows()
+ggplot(
+  gw_player_rolling_latest %>% filter(position == Midfielder),
   aes(x = cbitr_per_90_4gw, y = xgi_per_90_4gw, label = web_name)
 ) +
   geom_point(alpha = 0.7, size = 2) +
@@ -145,18 +187,29 @@ ggplot(
   ) +
   theme_minimal()
 
+# What other metrics?
 
-# Add Guehi (easy schedule, high xgi and cbit)
+###############################################
+## Strikers
+###############################################
 
-# Maatsen, Cash
-# Dalot
-# Gudmundsson
-# Guehi
-# Strujuk
-# N Williams
-# Gvardiol
-# Hall
-# Alderete
+windows()
+ggplot(
+  gw_player_rolling_latest %>% filter(position == "Midfielder"),
+  aes(x = shots_per_90_4gw, y = xg_per_90_4gw, label = web_name)
+) +
+  geom_point(alpha = 0.7, size = 2) +
+  geom_text_repel(size = 3, max.overlaps = 15) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    #title = "CBITR vs xGI (Last 4 GWs)",
+    x = "shots_per_90_4gw",
+    y = "xg_per_90_4gw"
+  ) +
+  theme_minimal()
 
+###############################################
+## Other ideas
+###############################################
 
-
+# What variables have the strongest correlation with total points?
