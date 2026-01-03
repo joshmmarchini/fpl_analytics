@@ -9,7 +9,7 @@ options(scipen = 999) # turn off scientific notation
 library(ggrepel)
 
 # specify gw range
-start_gw <- 19
+start_gw <- 20
 end_gw <- 30
 
 
