@@ -84,7 +84,15 @@ aggregate_window <- function(df) {
         position == "Defender" ~ defcon_def,
         position %in% c("Midfielder", "Forward") ~ defcon_mid_fwd,
         TRUE ~ 0
+      ),
+
+      defcon_per_90 = if_else(
+        minutes_played > 0,
+        (defcon / minutes_played) * 90,
+        NA_real_
       )
+
+
     ) %>%
     select(-defcon_def, -defcon_mid_fwd)
 }
@@ -129,6 +137,14 @@ top_performers <- bind_rows(first_13, last_6) %>%
   arrange(web_name, window)
 
 # Bucket players by id, web_name, price, position
+
+# xgi per 90 percentiles
+season_mids <- season %>%
+  filter(position == "Midfielder" & minutes_played >= 906)
+
+skim(season_mids)
+summary(season_mids$xgi_per_90)
+summary(season_mids$defcon_per_90)
 
 # For midfielders who played at least 780 minutes during the first 13 gw,
 # who was in the top 25% of xgi per 90?
@@ -185,21 +201,27 @@ View(midfielders_prior)
 # Bayesian Score for Midfielders
 #########################################
 
-# Helper: xGI per 90 in a window
-xgi_per90_window <- function(df, gw_min, gw_max) {
+# Helper: xGI + DefCon per 90 in a window
+xgi_def_per90_window <- function(df, gw_min, gw_max) {
   df %>%
     filter(gameweek >= gw_min, gameweek <= gw_max) %>%
     group_by(id, web_name, position) %>%
     summarise(
       mins = sum(minutes_played, na.rm = TRUE),
+
       xgi  = sum(xgi, na.rm = TRUE),
-      xgi_per90 = ifelse(mins > 0, 90 * xgi / mins, NA_real_),
+      defcon = sum(cbitr, na.rm = TRUE),
+
+      xgi_per90    = ifelse(mins > 0, 90 * xgi / mins, NA_real_),
+      defcon_per90 = ifelse(mins > 0, 90 * cbitr / mins, NA_real_),
+
       .groups = "drop"
     )
 }
 
+
 # 1) Build prior groups from GW 1-13
-train <- xgi_per90_window(gw_player, 1, 13) %>%
+train <- xgi_def_per90_window(gw_player, 1, 13) %>%
   filter(position == "Midfielder", mins >= 780) %>%
   mutate(good = ifelse(xgi_per90 > 0.389, 1, 0))
 
@@ -208,33 +230,74 @@ prior
 
 
 # 2) Evidence from GW 14-19
-test <- xgi_per90_window(gw_player, 14, 19) %>%
-  filter(position == "Midfielder" & mins >= 270) %>%
-  select(id, xgi_per90_6 = xgi_per90, mins_6 = mins)
+test <- xgi_def_per90_window(gw_player, 14, 19) %>%
+  filter(position == "Midfielder", mins >= 270) %>%
+  select(
+    id,
+    xgi_per90_6    = xgi_per90,
+    defcon_per90_6 = defcon_per90,
+    mins_6         = mins
+  )
+
 
 # 3) Join labels onto last-6 window for likelihood fitting
 likelihood_df <- train %>%
   select(web_name, id, good) %>%
   inner_join(test, by = "id") %>%
-  filter(!is.na(xgi_per90_6))
+  filter(
+    !is.na(xgi_per90_6),
+    !is.na(defcon_per90_6)
+  )
+
+skim(likelihood_df)
 
 
-mu_g <- mean(likelihood_df$xgi_per90_6[likelihood_df$good == 1], na.rm = TRUE)
-sd_g  <- sd(likelihood_df$xgi_per90_6[likelihood_df$good == 1], na.rm = TRUE)
+params <- likelihood_df %>%
+  group_by(good) %>%
+  summarise(
+    mu_xgi = mean(xgi_per90_6, na.rm = TRUE),
+    sd_xgi = sd(xgi_per90_6,  na.rm = TRUE),
 
-mu_ng <- mean(likelihood_df$xgi_per90_6[likelihood_df$good == 0], na.rm = TRUE)
-sd_ng <- sd(likelihood_df$xgi_per90_6[likelihood_df$good == 0], na.rm = TRUE)
+    mu_def = mean(defcon_per90_6, na.rm = TRUE),
+    sd_def = sd(defcon_per90_6,  na.rm = TRUE),
 
-c(mu_g, sd_g, mu_ng, sd_ng)
+    n = n(),
+    .groups = "drop"
+  )
+
+params
+
+mu_xgi_g  <- params %>% filter(good == 1) %>% pull(mu_xgi)
+sd_xgi_g  <- params %>% filter(good == 1) %>% pull(sd_xgi)
+
+mu_xgi_ng <- params %>% filter(good == 0) %>% pull(mu_xgi)
+sd_xgi_ng <- params %>% filter(good == 0) %>% pull(sd_xgi)
+
+mu_def_g  <- params %>% filter(good == 1) %>% pull(mu_def)
+sd_def_g  <- params %>% filter(good == 1) %>% pull(sd_def)
+
+mu_def_ng <- params %>% filter(good == 0) %>% pull(mu_def)
+sd_def_ng <- params %>% filter(good == 0) %>% pull(sd_def)
 
 
 score <- likelihood_df %>%
   mutate(
-    # likelihoods
-    px_g  = dnorm(xgi_per90_6, mean = mu_g,  sd = sd_g),
-    px_ng = dnorm(xgi_per90_6, mean = mu_ng, sd = sd_ng),
+    # Attack likelihoods
+    pxgi_g  = dnorm(xgi_per90_6, mean = mu_xgi_g,  sd = sd_xgi_g),
+    pxgi_ng = dnorm(xgi_per90_6, mean = mu_xgi_ng, sd = sd_xgi_ng),
 
-    # bayes posterior
-    post_good = (px_g * prior) / (px_g * prior + px_ng * (1 - prior))
+    # Defense likelihoods
+    pdef_g  = dnorm(defcon_per90_6, mean = mu_def_g,  sd = sd_def_g),
+    pdef_ng = dnorm(defcon_per90_6, mean = mu_def_ng, sd = sd_def_ng),
+
+    # Combined likelihoods (Naive Bayes)
+    lik_g  = pxgi_g  * pdef_g,
+    lik_ng = pxgi_ng * pdef_ng,
+
+    # Posterior
+    post_good = (lik_g * prior) /
+      (lik_g * prior + lik_ng * (1 - prior))
   ) %>%
-  arrange(desc(post_good))
+  #arrange(desc(post_good))
+  arrange(web_name)
+
