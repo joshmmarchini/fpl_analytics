@@ -66,6 +66,7 @@ aggregate_window <- function(df) {
 
       # attacking volume
       xgi_total      = sum(xgi, na.rm = TRUE),
+      xg_total      = sum(xg, na.rm = TRUE),
 
       .groups = "drop"
     ) %>%
@@ -74,6 +75,12 @@ aggregate_window <- function(df) {
       xgi_per_90 = if_else(
         minutes_played > 0,
         (xgi_total / minutes_played) * 90,
+        NA_real_
+      ),
+
+      xg_per_90 = if_else(
+        minutes_played > 0,
+        (xg_total / minutes_played) * 90,
         NA_real_
       ),
 
@@ -132,6 +139,18 @@ xgi_q3_mid_post <- quantile(
   na.rm = TRUE
 )
 
+xg_q3_mid_prior <- quantile(
+  prior_data_mid$xg_per_90,
+  probs = 0.75,
+  na.rm = TRUE
+)
+
+xg_q3_mid_post <- quantile(
+  post_data_mid$xg_per_90,
+  probs = 0.75,
+  na.rm = TRUE
+)
+
 cbitr_q3_mid_prior <- quantile(
   prior_data_mid$defcon_per_90,
   probs = 0.75,
@@ -181,6 +200,31 @@ cbit_q3_def_post <- quantile(
   na.rm = TRUE
 )
 
+# Variables for forwards only
+prior_data_fwd <- gw_player %>%
+  filter(gameweek <= prior_sample & position == "Forward") %>%
+  aggregate_window() %>%
+  filter(minutes_played >= min_threshold_prior) %>%
+  mutate(window = "prior")
+
+post_data_fwd <- gw_player %>%
+  filter(gameweek >= post_sample & position == "Forward") %>%
+  aggregate_window() %>%
+  filter(minutes_played >= min_threshold_post) %>%
+  mutate(window = "post")
+
+xgi_q3_fwd_prior <- quantile(
+  prior_data_fwd$xgi_per_90,
+  probs = 0.75,
+  na.rm = TRUE
+)
+
+xgi_q3_fwd_post <- quantile(
+  post_data_fwd$xgi_per_90,
+  probs = 0.75,
+  na.rm = TRUE
+)
+
 
 ###############################################################3
 # Variables defined for Bayesian Analysis
@@ -197,9 +241,17 @@ xgi_q3_def_post
 cbitr_q3_mid_prior
 cbitr_q3_mid_post
 
+# Variables needed for midfielder xg Bayesian analysis
+xg_q3_mid_prior
+xg_q3_mid_post
+
 # Variables needed for defender defcon Bayesian analysis
 cbit_q3_def_prior
 cbit_q3_def_post
+
+# Variables needed for forward xgi Bayesian analysis
+xgi_q3_fwd_prior
+xgi_q3_fwd_post
 
 # Variables needed for all Bayesian analysis
 min_threshold_prior
@@ -319,7 +371,7 @@ mids_xgi_window <- mids_xgi_window %>%
   )
 
 mids_xgi_window <- mids_xgi_window %>%
-  arrange(desc(prob_elite), desc(posterior_mean)) %>%
+  arrange(desc(prob_good), desc(posterior_mean)) %>%
     left_join(cost %>% select(id = player_id, now_cost, team_name), by = "id")
 
 
@@ -584,7 +636,7 @@ def_cbit_window <- def_cbit_window %>%
   )
 
 def_cbit_window <- def_cbit_window %>%
-  arrange(desc(prob_elite), desc(posterior_mean)) %>%
+  arrange(desc(prob_good), desc(posterior_mean)) %>%
   left_join(cost %>% select(id = player_id, now_cost, team_name), by = "id")
 
 
@@ -703,3 +755,126 @@ def_xgi_window <- def_xgi_window %>%
 def_xgi_window <- def_xgi_window %>%
   arrange(desc(prob_elite), desc(posterior_mean)) %>%
   left_join(cost %>% select(id = player_id, now_cost, team_name), by = "id")
+
+
+#############################################################
+# 6) Bayesian Score for Forwards based on xgi
+##############################################################
+
+#---------------------------------------------------------------------
+# Step 1: Define success at the GW level
+#---------------------------------------------------------------------
+
+# One row per player per match (gw_player)
+fwd_xgi <- gw_player %>%
+  filter(position == "Forward" & minutes_played >= 30) %>%
+  select(id, web_name, gameweek, minutes_played, xgi) %>%
+  mutate(
+    xgi_per_90 = if_else(minutes_played > 0,(xgi / minutes_played) * 90,NA_real_)
+    ) %>%
+  select(-xgi)
+
+# Define success at GW level
+fwd_xgi <- fwd_xgi %>%
+  mutate(
+    window = case_when(
+      gameweek <= prior_sample ~ "prior",
+      gameweek >= post_sample ~ "recent",
+      TRUE ~ NA_character_
+    ),
+    good_xgi = case_when(
+      window == "prior" & xgi_per_90 >= xgi_q3_fwd_prior ~ 1,
+      window == "recent" & xgi_per_90 >= xgi_q3_fwd_post ~ 1,
+      TRUE ~ 0
+    )
+  )
+
+# Each gw is now a Bernoulli trial with success defined above
+
+
+# Each gw is now a Bernoulli trial with success defined above
+
+#---------------------------------------------------------------------
+# Step 2: Aggregate to player x window
+#---------------------------------------------------------------------
+
+fwd_xgi_window <- fwd_xgi %>%
+  filter(!is.na(window)) %>%
+  group_by(id, web_name, window) %>%
+  summarise(
+    n = n(), # Number of gws
+    k = sum(good_xgi, na.rm = TRUE), # Number of good gws
+    .groups = "drop"
+  )
+
+# Now we have ingredients for k_prior, n_prior, k_recent, n_recent
+
+#---------------------------------------------------------------------
+# Step 3: Reshape to wide format
+#---------------------------------------------------------------------
+
+fwd_xgi_window <- fwd_xgi_window %>%
+  pivot_wider(
+    id_cols = c(id, web_name),
+    names_from = window,
+    values_from = c(n, k),
+    values_fill = 0
+  )
+
+#---------------------------------------------------------------------
+# Step 4: Define the Bayesian model
+#---------------------------------------------------------------------
+
+# Theta i = P(elite xGI GW for player i)
+# Prior ~ Beta(alpha0, beta0)
+
+# Start weak
+alpha0 <- 1
+beta0  <- 1
+
+#---------------------------------------------------------------------
+# Step 5: Update with prior-window evidence
+#---------------------------------------------------------------------
+
+fwd_xgi_window <- fwd_xgi_window %>%
+  mutate(
+    alpha_prior = alpha0 + k_prior,
+    beta_prior  = beta0 + (n_prior - k_prior)
+  )
+
+# This is the INFORMED PRIOR going into the recent window
+
+#---------------------------------------------------------------------
+# Step 6: Update with recent-window evidence (posterior)
+#---------------------------------------------------------------------
+
+fwd_xgi_window <- fwd_xgi_window %>%
+  mutate(
+    alpha_post = alpha_prior + k_recent,
+    beta_post  = beta_prior + (n_recent - k_recent)
+  )
+
+#---------------------------------------------------------------------
+# Step 7: Compute posteriror quantities you actually use
+#---------------------------------------------------------------------
+
+fwd_xgi_window <- fwd_xgi_window %>%
+  mutate(
+    posterior_mean = alpha_post / (alpha_post + beta_post), # Expected rate of elite GWs
+
+    # Probability player is genuinely good going forward
+    prob_good = 1 - pbeta(0.5, alpha_post, beta_post), # confidence signal
+
+    # More aggressive "elite" probability
+    prob_elite = 1 - pbeta(0.6, alpha_post, beta_post) # buy now signal
+  )
+
+fwd_xgi_window <- fwd_xgi_window %>%
+  arrange(desc(prob_elite), desc(posterior_mean)) %>%
+  left_join(cost %>% select(id = player_id, now_cost, team_name), by = "id")
+
+
+#############################################################
+# 6) Bayesian Score for Mids based on xg
+##############################################################
+
