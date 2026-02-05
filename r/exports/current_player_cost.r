@@ -14,7 +14,7 @@ library(readr)
 # fpl_insights db connection
 con <- dbConnect(
   duckdb(),
-  dbdir = "C:/dev/fpl_analytics/duckdb/fpl-insights.duckdb",
+  dbdir = here("duckdb", "fpl-insights.duckdb"),
   read_only = FALSE
 )
 

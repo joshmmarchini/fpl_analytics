@@ -53,6 +53,6 @@ head(df, 3)
 # Export to CSV
 write.csv(
   df,
-  "C:/dev/fpl_analytics/data/processed/stg_matches.csv",
+  here("data", "processed", "stg_matches.csv"),
   row.names = FALSE
 )

@@ -3,6 +3,7 @@
 #####################################################################
 library(DBI)
 library(duckdb)
+library(here)
 library(skimr)
 library(tidyverse)
 library(zoo) # for rolling (last 3 game or avg) calculations
@@ -18,7 +19,7 @@ library(slider)
 # fpl_insights db connection
 con <- dbConnect(
   duckdb(),
-  dbdir = "C:/dev/fpl_analytics/duckdb/fpl-insights.duckdb",
+  dbdir = here("duckdb", "fpl-insights.duckdb"),
   read_only = FALSE
 )
 

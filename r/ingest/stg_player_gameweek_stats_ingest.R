@@ -62,5 +62,5 @@ print(head(df, 3))
 
 # Export to csv
 write.csv(df,
-          "C:/dev/fpl_analytics/data/processed/stg_player_gameweek_stats.csv",
+          here("data", "processed", "stg_player_gameweek_stats.csv"),
           row.names = FALSE)
