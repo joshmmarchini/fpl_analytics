@@ -10,18 +10,15 @@ Fantasy Premier League analytics platform. Ingests FPL player/match data from CS
 
 - **DuckDB** - Embedded analytical database (`duckdb/fpl-insights.duckdb`)
 - **dbt** - SQL transformation layer (profile: `fpl_insights`, project in `dbt/fpl_insights/`)
-- **R** - Data ingestion and statistical analysis (tidyverse, DBI, duckdb, slider, zoo, ggrepel)
+- **R** - Statistical analysis (tidyverse, DBI, duckdb, slider, zoo, ggrepel)
 
 ## Data Pipeline Architecture
 
 ```
-External CSVs (data/external/FPL-Core-Insights/data/2025-2026/By Gameweek/)
+External CSVs (data/external/FPL-Core-Insights/data/2025-2026/)
     │
     ▼
-R Ingest Scripts (r/ingest/) → CSV files (data/processed/)
-    │
-    ▼
-dbt Staging Models (stg_*) → read_csv_auto() from processed CSVs
+dbt Staging Models (stg_*) → read_csv_auto() with glob patterns directly from external CSVs
     │
     ▼
 dbt Fact/Dimension Models (fact_*, dim_*) → business logic, LAG windows, calculated fields
@@ -46,20 +43,19 @@ dbt clean            # Remove target/ and dbt_packages/
 ### R Scripts
 Run interactively in RStudio or via `Rscript <path>`. No formal build system. Scripts connect to DuckDB via `here("duckdb", "fpl-insights.duckdb")`.
 
-**Ingestion order:** Run ingest scripts first to populate `data/processed/` CSVs, then `dbt run` to load into DuckDB, then analysis scripts.
+**Pipeline order:** Run `dbt run` to load external CSVs into DuckDB, then run R analysis scripts.
 
 ## Key dbt Models
 
 | Layer | Models | Purpose |
 |-------|--------|---------|
-| Staging | `stg_players`, `stg_teams`, `stg_matches`, `stg_playerstats`, `stg_playermatchstats`, `stg_player_gameweek_stats` | Read raw CSVs into DuckDB |
+| Staging | `stg_players`, `stg_teams`, `stg_matches`, `stg_playerstats`, `stg_playermatchstats`, `stg_player_gameweek_stats` | Glob-read external CSVs into DuckDB, extract gameweek from file path |
 | Dimension | `dim_players`, `dim_teams`, `dim_matches` | Deduplicated reference entities |
 | Fact | `fact_playerstats`, `fact_playermatchstats` | Calculated metrics: `xgi` (xg+xa), `cbit` (clearances+blocks+interceptions+tackles), GW deltas via LAG |
 | View | `vw_gw_player_data`, `vw_player_cost_current`, `vw_team_gw_opponent_elo` | Joined analytical views used by R scripts |
 
 ## Key R Scripts
 
-- **`r/ingest/`** - Four scripts that loop GW1-GW38, reading CSVs from the external dataset and combining them into single processed files
 - **`r/analysis/bayes_analysis.R`** - Bayesian probability modeling for player metrics (xgi, defensive contributions). Uses `aggregate_window()` helper for flexible windowed aggregation
 - **`r/analysis/fixture_analysis.R`** - ELO-based fixture difficulty ratings
 - **`r/analysis/gw_18.R`** - Rolling 4-game window metrics and per-90 normalization
@@ -68,7 +64,7 @@ Run interactively in RStudio or via `Rscript <path>`. No formal build system. Sc
 ## Important Conventions
 
 - R scripts use the `here` package for all file paths (DuckDB connections, CSV I/O). Never use hardcoded absolute paths; always use `here()` to build paths relative to the project root
-- dbt models use `read_csv_auto()` (DuckDB function) in staging models to import from `data/processed/`
+- dbt staging models use `read_csv_auto()` with glob patterns to read directly from `data/external/`. The `project_root` dbt variable (in `dbt_project.yml`) provides the base path
 - DuckDB schema: `analytics` (used in R queries, e.g., `analytics.vw_gw_player_data`)
 - External data source is the FPL-Core-Insights dataset (updated 2x daily), stored in `data/external/`
 - All data files, DuckDB databases, and logs are git-ignored
