@@ -44,7 +44,7 @@ dbt clean            # Remove target/ and dbt_packages/
 ```
 
 ### R Scripts
-Run interactively in RStudio or via `Rscript <path>`. No formal build system. Scripts connect to DuckDB at `C:/dev/fpl_analytics/duckdb/fpl-insights.duckdb`.
+Run interactively in RStudio or via `Rscript <path>`. No formal build system. Scripts connect to DuckDB via `here("duckdb", "fpl-insights.duckdb")`.
 
 **Ingestion order:** Run ingest scripts first to populate `data/processed/` CSVs, then `dbt run` to load into DuckDB, then analysis scripts.
 
@@ -67,7 +67,7 @@ Run interactively in RStudio or via `Rscript <path>`. No formal build system. Sc
 
 ## Important Conventions
 
-- R scripts use hardcoded absolute paths to `C:/dev/fpl_analytics/` for DuckDB connections and file I/O
+- R scripts use the `here` package for all file paths (DuckDB connections, CSV I/O). Never use hardcoded absolute paths; always use `here()` to build paths relative to the project root
 - dbt models use `read_csv_auto()` (DuckDB function) in staging models to import from `data/processed/`
 - DuckDB schema: `analytics` (used in R queries, e.g., `analytics.vw_gw_player_data`)
 - External data source is the FPL-Core-Insights dataset (updated 2x daily), stored in `data/external/`
