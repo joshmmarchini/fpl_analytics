@@ -105,11 +105,11 @@ aggregate_window <- function(df) {
 }
 
 # Variables for all positions
-max_gw <- max(gw_player$gameweek) # 21
+max_gw <- max(gw_player$gameweek) # 24
 min_gw <- min(gw_player$gameweek) # 1
 
-prior_sample <- ceiling(.70 * max_gw) # 15
-post_sample <- prior_sample + 1 # 16
+prior_sample <- ceiling(.70 * max_gw) # 17
+post_sample <- prior_sample + 1 # 18
 
 min_threshold_prior <- ceiling(0.5 * (prior_sample * 90))
 min_threshold_post  <- ceiling(0.5 * ((max_gw - post_sample) * 90))
@@ -374,6 +374,8 @@ mids_xgi_window <- mids_xgi_window %>%
   arrange(desc(prob_good), desc(posterior_mean)) %>%
     left_join(cost %>% select(id = player_id, now_cost, team_name), by = "id")
 
+View(mids_xgi_window)
+
 
 #############################################################
 # 2) Bayesian Score for Midfielders based on defcon
@@ -490,6 +492,8 @@ mids_cbitr_window <- mids_cbitr_window %>%
 mids_cbitr_window <- mids_cbitr_window %>%
   arrange(desc(prob_elite), desc(posterior_mean)) %>%
   left_join(cost %>% select(id = player_id, now_cost, team_name), by = "id")
+
+View(mids_cbitr_window)
 
 
 #############################################################
@@ -639,6 +643,7 @@ def_cbit_window <- def_cbit_window %>%
   arrange(desc(prob_good), desc(posterior_mean)) %>%
   left_join(cost %>% select(id = player_id, now_cost, team_name), by = "id")
 
+View(def_cbit_window)
 
 #############################################################
 # 5) Bayesian Score for Defenders based on xgi
@@ -755,6 +760,8 @@ def_xgi_window <- def_xgi_window %>%
 def_xgi_window <- def_xgi_window %>%
   arrange(desc(prob_elite), desc(posterior_mean)) %>%
   left_join(cost %>% select(id = player_id, now_cost, team_name), by = "id")
+
+View(def_xgi_window)
 
 
 #############################################################
@@ -873,6 +880,7 @@ fwd_xgi_window <- fwd_xgi_window %>%
   arrange(desc(prob_elite), desc(posterior_mean)) %>%
   left_join(cost %>% select(id = player_id, now_cost, team_name), by = "id")
 
+View(fwd_xgi_window)
 
 #############################################################
 # 6) Bayesian Score for Mids based on xg

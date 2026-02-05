@@ -5,6 +5,7 @@
 library(DBI)
 library(duckdb)
 library(here)
+library(readr)
 
 #####################################################################
 # Connect to duckdb
