@@ -1,0 +1,99 @@
+version: 2
+
+models:
+  - name: stg_matches
+    description: Match-level data globbed from per-gameweek CSVs
+    columns:
+      - name: match_id
+        tests:
+          - unique
+          - not_null
+      - name: gameweek
+        tests:
+          - not_null
+      - name: home_team
+        description: "Null for European competition matches where the home team is not an EPL club"
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: away_team
+        description: "Null for European competition matches where the away team is not an EPL club"
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+  - name: stg_players
+    description: Player reference data from players.csv
+    columns:
+      - name: player_id
+        tests:
+          - unique
+          - not_null
+      - name: player_code
+        tests:
+          - unique
+          - not_null
+      - name: web_name
+        tests:
+          - not_null
+      - name: team_code
+        tests:
+          - not_null
+      - name: position
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Goalkeeper', 'Defender', 'Midfielder', 'Forward']
+
+  - name: stg_teams
+    description: Team reference data from teams.csv
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: code
+        tests:
+          - unique
+          - not_null
+      - name: name
+        tests:
+          - not_null
+      - name: short_name
+        tests:
+          - not_null
+
+  - name: stg_playerstats
+    description: Cumulative player stats globbed from per-gameweek CSVs
+    columns:
+      - name: id
+        tests:
+          - not_null
+      - name: gameweek
+        tests:
+          - not_null
+
+  - name: stg_playermatchstats
+    description: Per-player per-match stats globbed from per-gameweek CSVs
+    columns:
+      - name: player_id
+        tests:
+          - not_null
+      - name: match_id
+        tests:
+          - not_null
+      - name: gameweek
+        tests:
+          - not_null
+
+  - name: stg_player_gameweek_stats
+    description: Per-player per-gameweek stats globbed from per-gameweek CSVs
+    columns:
+      - name: id
+        tests:
+          - not_null
+      - name: gameweek
+        tests:
+          - not_null
