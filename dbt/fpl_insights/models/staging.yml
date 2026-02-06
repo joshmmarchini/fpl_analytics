@@ -45,7 +45,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['Goalkeeper', 'Defender', 'Midfielder', 'Forward']
+              arguments:
+                values: ['Goalkeeper', 'Defender', 'Midfielder', 'Forward']
 
   - name: stg_teams
     description: Team reference data from teams.csv

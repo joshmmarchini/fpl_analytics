@@ -64,7 +64,7 @@ Run interactively in RStudio or via `Rscript <path>`. No formal build system. Sc
 ## Important Conventions
 
 - R scripts use the `here` package for all file paths (DuckDB connections, CSV I/O). Never use hardcoded absolute paths; always use `here()` to build paths relative to the project root
-- dbt staging models use `read_csv_auto()` with glob patterns to read directly from `data/external/`. The `project_root` dbt variable (in `dbt_project.yml`) provides the base path
+- dbt staging models use `read_csv_auto()` with glob patterns to read directly from `data/external/`. The `get_project_root()` macro resolves the base path from the `FPL_PROJECT_ROOT` environment variable
 - DuckDB schema: `analytics` (used in R queries, e.g., `analytics.vw_gw_player_data`)
 - External data source is the FPL-Core-Insights dataset (updated 2x daily), stored in `data/external/`
 - All data files, DuckDB databases, and logs are git-ignored
