@@ -71,6 +71,7 @@ match_epl as (
 )
 
 select
+    CAST(gw.id AS TEXT) || '_' || COALESCE(m.match_id, 'GW' || CAST(gw.gameweek AS TEXT)) AS player_gw_match_id,
     gw.*,
     m.match_id,
     m.minutes_played,

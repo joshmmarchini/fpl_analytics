@@ -5,10 +5,12 @@ models:
     description: Match-level data globbed from per-gameweek CSVs
     columns:
       - name: match_id
+        description: Unique match identifier (e.g. '25-26-prem-team-a-vs-team-b')
         tests:
           - unique
           - not_null
       - name: gameweek
+        description: Gameweek number extracted from the source file path
         tests:
           - not_null
       - name: home_team
@@ -28,20 +30,25 @@ models:
     description: Player reference data from players.csv
     columns:
       - name: player_id
+        description: FPL internal player ID (sequential integer)
         tests:
           - unique
           - not_null
       - name: player_code
+        description: FPL player code (persistent across seasons)
         tests:
           - unique
           - not_null
       - name: web_name
+        description: Display name used on the FPL website
         tests:
           - not_null
       - name: team_code
+        description: Numeric team code; join to dim_teams.code for team name
         tests:
           - not_null
       - name: position
+        description: Player position (Goalkeeper, Defender, Midfielder, Forward)
         tests:
           - not_null
           - accepted_values:
@@ -52,17 +59,21 @@ models:
     description: Team reference data from teams.csv
     columns:
       - name: id
+        description: FPL internal team ID (1-20, sequential)
         tests:
           - unique
           - not_null
       - name: code
+        description: Numeric team code (persistent across seasons); used as foreign key in player and match data
         tests:
           - unique
           - not_null
       - name: name
+        description: Full team name (e.g. 'Arsenal')
         tests:
           - not_null
       - name: short_name
+        description: Three-letter abbreviation (e.g. 'ARS')
         tests:
           - not_null
 
@@ -70,9 +81,11 @@ models:
     description: Cumulative player stats globbed from per-gameweek CSVs
     columns:
       - name: id
+        description: FPL player ID; not unique here since there is one row per player per gameweek
         tests:
           - not_null
       - name: gameweek
+        description: Gameweek number extracted from the source file path
         tests:
           - not_null
 
@@ -80,12 +93,15 @@ models:
     description: Per-player per-match stats globbed from per-gameweek CSVs
     columns:
       - name: player_id
+        description: FPL player ID
         tests:
           - not_null
       - name: match_id
+        description: Match identifier; join to dim_matches.match_id
         tests:
           - not_null
       - name: gameweek
+        description: Gameweek number extracted from the source file path
         tests:
           - not_null
 
@@ -93,8 +109,10 @@ models:
     description: Per-player per-gameweek stats globbed from per-gameweek CSVs
     columns:
       - name: id
+        description: FPL player ID; not unique here since there is one row per player per gameweek
         tests:
           - not_null
       - name: gameweek
+        description: Gameweek number extracted from the source file path
         tests:
           - not_null
