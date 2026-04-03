@@ -1,15 +1,17 @@
-# Copy this file to ~/.dbt/profiles.yml and update the path to match your system.
+# Copy this file to ~/.dbt/profiles.yml
 #
 # On Windows: C:\Users\<username>\.dbt\profiles.yml
 # On Mac/Linux: ~/.dbt/profiles.yml
+#
+# Make sure FPL_PROJECT_ROOT is set to your local project root:
+  # Windows: $env:FPL_PROJECT_ROOT = "C:\dev\fpl_analytics"
+  # Mac/Linux: export FPL_PROJECT_ROOT=/path/to/fpl_analytics
 
 fpl_insights:
   outputs:
     dev:
       type: duckdb
-      # Update this path to point to your local fpl_analytics directory
-      path: /path/to/fpl_analytics/duckdb/fpl-insights.duckdb
+      path: "{{ env_var('FPL_PROJECT_ROOT') }}/duckdb/fpl-insights.duckdb"
       schema: analytics
       threads: 4
-
   target: dev

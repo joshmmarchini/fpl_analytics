@@ -11,4 +11,4 @@ FROM {{ ref('fact_playerstats') }} s
 LEFT JOIN {{ ref('dim_players') }} p ON s.id = p.player_id
 LEFT JOIN {{ ref('dim_teams') }} t ON p.team_code = t.code
 WHERE 
-    s.gameweek = (SELECT MAX(gameweek) FROM {{ ref('stg_playerstats') }})
+    s.gameweek = (SELECT MAX(gameweek) FROM {{ ref('fact_playerstats') }})
