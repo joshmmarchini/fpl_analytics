@@ -38,6 +38,7 @@ dbt run              # Build all models
 dbt run -s model_name  # Build a single model
 dbt test             # Run dbt tests
 dbt clean            # Remove target/ and dbt_packages/
+
 ```
 
 ### R Scripts
@@ -60,6 +61,97 @@ Run interactively in RStudio or via `Rscript <path>`. No formal build system. Sc
 - **`r/analysis/fixture_analysis.R`** - ELO-based fixture difficulty ratings
 - **`r/analysis/gw_18.R`** - Rolling 4-game window metrics and per-90 normalization
 - **`r/exports/current_player_cost.r`** - Exports current player pricing from DuckDB to CSV
+
+## Ad-hoc DuckDB Queries
+
+Run queries directly against the database using the `FPL_PROJECT_ROOT` environment variable (the same one used by dbt staging models):
+
+```bash
+duckdb $FPL_PROJECT_ROOT/duckdb/fpl-insights.duckdb "SELECT ..."
+```
+
+Anyone cloning the repo just needs to set `FPL_PROJECT_ROOT` to their local project root (e.g. `export FPL_PROJECT_ROOT=/path/to/fpl_analytics`) and both dbt and ad-hoc DuckDB queries will work without modification.
+
+The primary analytical view is `analytics.vw_gw_player_data`. Use this for most player/gameweek queries.
+
+### vw_gw_player_data columns
+
+**Identity**
+| Column | Type | Notes |
+|--------|------|-------|
+| `player_gw_match_id` | VARCHAR | Surrogate key |
+| `id` | BIGINT | Player ID |
+| `gameweek` | INTEGER | |
+| `match_id` | VARCHAR | |
+| `web_name` | VARCHAR | Player display name |
+| `position` | VARCHAR | GKP / DEF / MID / FWD |
+| `team` | VARCHAR | Short team name |
+
+**FPL Points**
+| Column | Type |
+|--------|------|
+| `total_points_gw` | BIGINT |
+| `bonus_points_gw` | BIGINT |
+| `bps_gw` | BIGINT |
+| `form` | DOUBLE |
+
+**ICT Index**
+| Column | Type |
+|--------|------|
+| `influence_gw` | DOUBLE |
+| `creativity_gw` | DOUBLE |
+| `threat_gw` | DOUBLE |
+| `ict_index_gw` | DOUBLE |
+| `expected_goal_involvements_gw` | DOUBLE |
+
+**Attacking**
+| Column | Type | Notes |
+|--------|------|-------|
+| `goals` | BIGINT | |
+| `assists` | BIGINT | |
+| `xg` | DOUBLE | |
+| `xa` | DOUBLE | |
+| `xgi` | DOUBLE | xg + xa |
+| `xgot` | DOUBLE | |
+| `total_shots` | BIGINT | |
+| `shots_on_target` | BIGINT | |
+| `big_chances_missed` | BIGINT | |
+| `touches_opposition_box` | BIGINT | |
+| `touches` | BIGINT | |
+| `chances_created` | DOUBLE | |
+| `corners` | BIGINT | |
+| `penalties_attempted` | BIGINT | |
+
+**Passing**
+| Column | Type |
+|--------|------|
+| `accurate_passes` | BIGINT |
+| `final_third_passes` | BIGINT |
+| `accurate_crosses` | BIGINT |
+| `accurate_long_balls` | BIGINT |
+
+**Defensive**
+| Column | Type | Notes |
+|--------|------|-------|
+| `defensive_contribution_gw` | BIGINT | |
+| `tackles_gw` | BIGINT | |
+| `clearances_blocks_interceptions_gw` | BIGINT | |
+| `recoveries_gw` | BIGINT | |
+| `cbit` | BIGINT | Clearances + blocks + interceptions + tackles |
+| `cbitr` | BIGINT | |
+| `dribbled_past` | BIGINT | |
+
+**Goalkeeping**
+| Column | Type |
+|--------|------|
+| `saves` | BIGINT |
+| `xgot_faced` | DOUBLE |
+
+**Minutes**
+| Column | Type | Notes |
+|--------|------|-------|
+| `minutes_played` | BIGINT | From match-level stats |
+| `minutes_played_gw` | BIGINT | From GW-level stats |
 
 ## Important Conventions
 

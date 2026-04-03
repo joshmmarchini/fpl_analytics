@@ -182,6 +182,3 @@ fpl_analytics/
 | Fact | `fact_playerstats`, `fact_playermatchstats` | Calculated metrics (xgi, cbit), GW deltas via LAG |
 | View | `vw_gw_player_data`, `vw_player_cost_current`, `vw_team_gw_opponent_elo` | Analysis-ready joined datasets |
 
-## License
-
-MIT
